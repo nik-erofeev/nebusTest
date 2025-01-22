@@ -26,13 +26,14 @@ class ResponseSchema(BaseModelConfig):
 
 
 class BuildingCreate(BaseModelConfig):
-    address: str = Field(examples=["Блюхера, 32/1"], max_length=150)
+    address: str = Field(examples=["Блюхера, 32/1"], max_length=150, min_length=5)
     latitude: float = Field(ge=-90, le=90, examples=[55.7558], description="Широта здания в градусах")
     longitude: float = Field(ge=-180, le=180, examples=[37.6173], description="Долгота здания в градусах")
 
 
 class OrganizationCreate(BaseModelConfig):
     name: str = Field(
+        min_length=1,
         description="имя организации",
         examples=["ООО “Рога и Копыта”"],
         max_length=50,
@@ -61,6 +62,7 @@ class ActivityCreate(BaseModelConfig):
         description="Название деятельности",
         examples=["Молочная продукция", "Мясная продукция"],
         max_length=50,
+        min_length=1,
     )
     parent_id: int | None = Field(default=None, description="ID родительской деятельности")
 
