@@ -2,7 +2,7 @@ import pytest
 from datetime import datetime
 from pydantic import ValidationError
 
-from app.api.organization.shemas import ResponseSchema, OrganizationCreate
+from app.api.organization.schemas import ResponseSchema, OrganizationCreate
 
 
 @pytest.mark.parametrize(

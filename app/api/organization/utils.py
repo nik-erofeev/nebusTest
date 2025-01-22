@@ -4,8 +4,10 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from app.api.organization.dao import BuildingDao, ActivityDao, OrganizationDao, OrganizationActivityDao
-from app.api.organization.shemas import BuildingCreate, ActivityCreate, OrganizationCreate, OrganizationActivityCreate
+from app.api.activity.dao import ActivityDao
+from app.api.building.dao import BuildingDao
+from app.api.organization.dao import OrganizationDao, OrganizationActivityDao
+from app.api.organization.schemas import BuildingCreate, ActivityCreate, OrganizationCreate, OrganizationActivityCreate
 from app.models import Activity
 
 
@@ -45,90 +47,18 @@ ORGANIZATION_NAMES = [
 ]
 ACTIVITY_HIERARCHY = {
     "Еда": {
-        "Мясная продукция": {
-            "Говядина": {
-                "Стейк": [],
-                "Фарш": [],
-            },
-            "Свинина": {
-                "Бекон": [],
-                "Отбивные": [],
-            },
-        },
-        "Молочная продукция": {
-            "Молоко": {
-                "Цельное": [],
-                "Обезжиренное": [],
-            },
-            "Йогурты": {
-                "Греческий": [],
-                "Фруктовый": [],
-            },
-        },
-        "Овощи и фрукты": {
-            "Свежие овощи": {
-                "Помидоры": [],
-                "Огурцы": [],
-            },
-            "Свежие фрукты": {
-                "Яблоки": [],
-                "Бананы": [],
-            },
-        },
+        "Мясная продукция": ["Говядина", "Свинина"],
+        "Молочная продукция": ["Молоко", "Йогурты"],
+        "Овощи и фрукты": ["Свежие овощи", "Свежие фрукты"],
     },
     "Автомобили": {
-        "Грузовые": {
-            "Фургоны": {
-                "Малые": [],
-                "Большие": [],
-            },
-            "Самосвалы": {
-                "Стационарные": [],
-                "Передвижные": [],
-            },
-        },
-        "Легковые": {
-            "Седаны": {
-                "Спортивные": [],
-                "Универсалы": [],
-            },
-            "Хэтчбеки": {
-                "Компактные": [],
-                "Полноразмерные": [],
-            },
-        },
+        "Грузовые": ["Фургоны", "Самосвалы"],
+        "Легковые": ["Седаны", "Хэтчбеки"],
     },
     "Электроника": {
-        "Мобильные устройства": {
-            "Смартфоны": {
-                "Android": [],
-                "iOS": [],
-            },
-            "Планшеты": {
-                "Android": [],
-                "iOS": [],
-            },
-        },
-        "Компьютеры": {
-            "Ноутбуки": {
-                "Игровые": [],
-                "Офисные": [],
-            },
-            "Настольные ПК": {
-                "Игровые": [],
-                "Офисные": [],
-            },
-        },
-        "Аудио и видео": {
-            "Телевизоры": {
-                "Смарт": [],
-                "Обычные": [],
-            },
-            "Колонки": {
-                "Портативные": [],
-                "Стационарные": [],
-            },
-        },
+        "Мобильные устройства": ["Смартфоны", "Планшеты"],
+        "Компьютеры": ["Ноутбуки", "Настольные ПК"],
+        "Аудио и видео": ["Телевизоры", "Колонки"],
     },
 }
 
@@ -139,7 +69,6 @@ class DataGenerator:
         self.buildings: list[BuildingCreate] = []
         self.activities: list[ActivityCreate] = []
         self.activity_map: dict = {}
-        self.organization_depths: dict[str, int] = {}
 
     @staticmethod
     def generate_phone_number() -> str:
@@ -165,28 +94,22 @@ class DataGenerator:
     async def create_activities(self) -> None:
         for root_name, children in ACTIVITY_HIERARCHY.items():
             root_activity = ActivityCreate(name=root_name)
-            root_activity_response = await ActivityDao.add(self.session, root_activity)
+            root_activity_response = await ActivityDao.add_activity(self.session, root_activity)
             self.activities.append(root_activity_response)
             self.activity_map[root_activity_response.id] = None
 
             for child_name, grandchildren in children.items():
                 child_activity = ActivityCreate(name=child_name, parent_id=root_activity_response.id)
-                child_activity_response = await ActivityDao.add(self.session, child_activity)
+                child_activity_response = await ActivityDao.add_activity(self.session, child_activity)
                 self.activities.append(child_activity_response)
                 self.activity_map[child_activity_response.id] = root_activity_response.id
 
-                for grandchild_name, great_grandchildren in grandchildren.items():
-                    grandchild_activity = ActivityCreate(name=grandchild_name, parent_id=child_activity_response.id)
-                    grandchild_activity_response = await ActivityDao.add(self.session, grandchild_activity)
-                    self.activities.append(grandchild_activity_response)
-                    self.activity_map[grandchild_activity_response.id] = child_activity_response.id
-
-                    for great_grandchild_name in great_grandchildren:
-                        great_grandchild_activity = ActivityCreate(
-                            name=great_grandchild_name,
-                            parent_id=grandchild_activity_response.id,
-                        )
-                        await ActivityDao.add(self.session, great_grandchild_activity)
+                for grandchild_name in grandchildren:
+                    great_grandchild_activity = ActivityCreate(
+                        name=grandchild_name,
+                        parent_id=child_activity_response.id,
+                    )
+                    await ActivityDao.add_activity(self.session, great_grandchild_activity)
 
     async def create_organizations(self) -> None:
         for _ in range(random.randint(5, 10)):
@@ -197,9 +120,6 @@ class DataGenerator:
             )
             organization_response = await OrganizationDao.add(self.session, organization)
 
-            depth = random.randint(2, 4)
-            self.organization_depths[organization_response.name] = depth
-
             selected_activities = random.sample(self.activities, k=random.randint(1, 3))
             for activity in selected_activities:
                 if isinstance(activity, Activity) and activity.id:
@@ -209,13 +129,11 @@ class DataGenerator:
                     )
                     await OrganizationActivityDao.add(self.session, organization_activity)
 
-    async def create_initial_data(self) -> dict[str, int]:
+    async def create_initial_data(self) -> None:
         try:
             await self.create_buildings()
             await self.create_activities()
             await self.create_organizations()
-
-            return self.organization_depths
 
         except Exception as e:
             raise HTTPException(

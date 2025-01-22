@@ -15,4 +15,8 @@ class Building(Base):
     latitude: Mapped[float] = mapped_column(nullable=False)
     longitude: Mapped[float] = mapped_column(nullable=False)
 
-    organizations: Mapped[list["Organization"]] = relationship("Organization", back_populates="building")
+    organizations: Mapped[list["Organization"]] = relationship(
+        "Organization",
+        back_populates="building",
+        # lazy='joined',  # если  не указаны lazy="joined" и lazy="selectin", то подгружаем
+    )
