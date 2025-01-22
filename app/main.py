@@ -1,7 +1,7 @@
-from fastapi import FastAPI
+from app.application import create_app
+from app.core.settings import APP_CONFIG
 
-
-app = FastAPI()
+app = create_app(APP_CONFIG)
 
 if __name__ == "__main__":
     import uvicorn
