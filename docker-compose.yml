@@ -19,6 +19,28 @@ services:
       timeout: 5s
       retries: 3
 
+
+  api:
+    container_name: ${DOCKER_NAME}_api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: ["/nebus/docker/app.sh"]   #  можно указать dockerfile
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    ports:
+      - "8000:8000"
+    networks:
+      - custom
+    healthcheck:
+       test: ["CMD", "curl", "-f", "http://localhost:8000/v1/check_database"]
+       interval: 30s
+       timeout: 5s
+       retries: 3
+
 volumes:
   postgres_nebus:
     driver: local
