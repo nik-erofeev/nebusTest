@@ -1,13 +1,13 @@
 import logging
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.responses import ORJSONResponse
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.default.schemas import DBResponse, PingResponse
-from app.dao.session_maker import SessionDep
+from app.dependencies.dao_dep import get_session_without_commit
 
 router = APIRouter(
     tags=["default"],
@@ -38,7 +38,7 @@ async def _ping():
     summary="Проверка доступности базы данных",
     status_code=status.HTTP_200_OK,
 )
-async def _ready(session: AsyncSession = SessionDep):
+async def _ready(session: AsyncSession = Depends(get_session_without_commit)):
     try:
         await session.execute(text("SELECT 1"))
     except SQLAlchemyError:

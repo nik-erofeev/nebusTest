@@ -7,8 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application import create_app
 from app.core.settings import AppConfig
-from app.dao.session_maker import session_manager
-
+from app.dependencies.dao_dep import get_session_with_commit, get_session_without_commit
 
 mock_session = AsyncMock(autospec=AsyncSession)
 
@@ -37,10 +36,10 @@ async def _app():
     app = create_app(config)
 
     # Переопределяем Depends[SessionDep]
-    app.dependency_overrides[session_manager.get_session] = mock_get_session
+    app.dependency_overrides[get_session_with_commit] = mock_get_session
 
     # Переопределяем Depends[TransactionSessionDep]
-    app.dependency_overrides[session_manager.get_transaction_session] = mock_get_transaction_session
+    app.dependency_overrides[get_session_without_commit] = mock_get_transaction_session
 
     return app
 

@@ -1,11 +1,10 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import ORJSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from app.api.organization.utils import DataGenerator
-from app.dao.session_maker import TransactionSessionDep
-
+from app.dependencies.dao_dep import get_session_with_commit
 
 router = APIRouter(
     prefix="/initialize-data",
@@ -19,7 +18,7 @@ router = APIRouter(
     summary="Инициализация тестовых данных",
     response_class=ORJSONResponse,
 )
-async def initialize_data(session: AsyncSession = TransactionSessionDep):
+async def initialize_data(session: AsyncSession = Depends(get_session_with_commit)):
     data_generator = DataGenerator(session)
     for _ in range(5):
         await data_generator.create_initial_data()

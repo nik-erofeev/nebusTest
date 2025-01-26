@@ -1,6 +1,7 @@
 import logging
 import os
 from contextlib import asynccontextmanager
+from collections.abc import AsyncGenerator
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,15 +17,20 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    logger.info("Starting server...")
-
+async def lifespan(app: FastAPI) -> AsyncGenerator[dict, None]:
+    """Управление жизненным циклом приложения."""
+    logger.info("Инициализация приложения...")
     yield
-
-    logger.info("Shutting down server...")
+    logger.info("Завершение работы приложения...")
 
 
 def create_app(config: AppConfig) -> FastAPI:
+    """
+    Создание и конфигурация FastAPI приложения.
+
+    Returns:
+        Сконфигурированное приложение FastAPI
+    """
     app = FastAPI(
         title=config.api.project_name,
         description=config.api.description,

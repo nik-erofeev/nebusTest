@@ -1,12 +1,10 @@
-from fastapi import APIRouter, status, Query
+from fastapi import APIRouter, status, Query, Depends
 from fastapi.responses import ORJSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.organization.dao import OrganizationDao
 from app.api.organization.schemas import OrganizationResponse
-
-from app.dao.session_maker import TransactionSessionDep
-
+from app.dependencies.dao_dep import get_session_without_commit
 
 router = APIRouter(
     prefix="/organizations",
@@ -22,7 +20,7 @@ router = APIRouter(
 )
 async def search_organization(
     name: str = Query(..., example="ЗАО “Электроника”"),
-    db: AsyncSession = TransactionSessionDep,
+    db: AsyncSession = Depends(get_session_without_commit),
 ):
     return await OrganizationDao.get_org_by_name(db, name)
 
@@ -34,5 +32,5 @@ async def search_organization(
     response_model=OrganizationResponse,
     summary="Получить организацию по id",
 )
-async def get_organization_by_id(organization_id: int, db: AsyncSession = TransactionSessionDep):
+async def get_organization_by_id(organization_id: int, db: AsyncSession = Depends(get_session_without_commit)):
     return await OrganizationDao.get_orgs_by_id(db, organization_id)
