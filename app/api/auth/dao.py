@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Response
 
@@ -15,6 +17,9 @@ from app.exceptions import UserAlreadyExistsException, IncorrectEmailOrPasswordE
 from app.models.auth import User, Role
 
 
+logger = logging.getLogger(__name__)
+
+
 class UsersDAO(BaseDAO):
     model = User
 
@@ -23,6 +28,7 @@ class UsersDAO(BaseDAO):
         # Проверка существования пользователя
         existing_user = await cls.find_one_or_none(session=session, filters=EmailModel(email=user_data.email))
         if existing_user:
+            logger.info(f"Пользователь с email {user_data.email} уже существует!")
             raise UserAlreadyExistsException
 
         # Подготовка данных для добавления
@@ -31,6 +37,7 @@ class UsersDAO(BaseDAO):
 
         # Добавление пользователя
         await cls.add(session=session, values=SUserAddDB(**user_data_dict))
+        logger.info(f"Пользователь с email {user_data.email} успешно добавлен!")
 
         return RUserResponse(message="Вы успешно зарегистрированы!")
 
@@ -46,6 +53,7 @@ class UsersDAO(BaseDAO):
         if not (user and await authenticate_user(user=user, password=user_data.password)):
             raise IncorrectEmailOrPasswordException
         set_tokens(response, user.id)
+        logger.info(f"Set cookie tokens for user {user.id}!")
         return AUserResponse(message="Авторизация успешна!")
 
 

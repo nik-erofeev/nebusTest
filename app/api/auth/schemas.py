@@ -75,3 +75,9 @@ class AUserResponse(AuthResponse):
 
 class LUserResponse(AuthResponse):
     pass
+
+
+class AUserBearerResponse(BaseModel):
+    token_type: str = Field(description="Тип токена", default="bearer")
+    access_token: str
+    refresh_token: str

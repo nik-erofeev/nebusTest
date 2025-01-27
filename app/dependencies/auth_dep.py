@@ -15,9 +15,10 @@ from app.exceptions import (
 )
 from app.models import User
 from app.core.settings import APP_CONFIG
+from fastapi.security import OAuth2PasswordBearer
 
 
-def get_access_token(request: Request) -> str:
+def get_token_cookie(request: Request) -> str:
     """Извлекаем access_token из кук."""
     token = request.cookies.get("user_access_token")
     if not token:
@@ -53,11 +54,11 @@ async def check_refresh_token(
         raise NoJwtException
 
 
-async def get_current_user(
-    token: str = Depends(get_access_token),
+async def get_current_user_cookie(
+    token: str = Depends(get_token_cookie),
     session: AsyncSession = Depends(get_session_without_commit),
 ) -> User:
-    """Проверяем access_token и возвращаем пользователя."""
+    """Проверяем access_token и возвращаем пользователя  через cookie."""
     try:
         # Декодируем токен
         payload = jwt.decode(token, APP_CONFIG.SECRET_KEY, algorithms=[APP_CONFIG.ALGORITHM])
@@ -82,8 +83,37 @@ async def get_current_user(
     return user
 
 
-async def get_current_admin_user(current_user: User = Depends(get_current_user)) -> User:
-    """Проверяем права пользователя как администратора."""
+async def get_current_admin_user_cookie(current_user: User = Depends(get_current_user_cookie)) -> User:
+    """Проверяем права пользователя как администратора через cookie."""
+    if current_user.role.id in [3, 4]:
+        return current_user
+    raise ForbiddenException
+
+
+# Bearer
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
+
+
+async def get_current_user_bearer(
+    token: str = Depends(oauth2_scheme),
+    session: AsyncSession = Depends(get_session_without_commit),
+) -> User:
+    """Проверяем access_token и возвращаем пользователя  через bearer."""
+    try:
+        payload = jwt.decode(token, APP_CONFIG.SECRET_KEY, algorithms=[APP_CONFIG.ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise NoUserIdException
+        user = await UsersDAO.find_one_or_none_by_id(data_id=int(user_id), session=session)
+        if user is None:
+            raise UserNotFoundException
+        return user
+    except JWTError:
+        raise NoJwtException
+
+
+async def get_current_admin_user_bearer(current_user: User = Depends(get_current_user_bearer)) -> User:
+    """Проверяем права пользователя как администратора через Bearer Token."""
     if current_user.role.id in [3, 4]:
         return current_user
     raise ForbiddenException

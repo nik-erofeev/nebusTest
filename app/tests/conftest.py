@@ -1,5 +1,6 @@
 from unittest.mock import AsyncMock
 
+import pytest
 import pytest_asyncio
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
@@ -12,7 +13,7 @@ from app.dependencies.dao_dep import get_session_with_commit, get_session_withou
 mock_session = AsyncMock(autospec=AsyncSession)
 
 
-async def mock_get_session():
+async def mock_get_session_with_commit():
     # Мок для получения сессии без транзакции
     try:
         yield mock_session
@@ -21,11 +22,10 @@ async def mock_get_session():
         await mock_session.close()
 
 
-async def mock_get_transaction_session():
+async def mock_get_session_without_commit():
     # Мок для получения сессии с управлением транзакцией
     try:
         yield mock_session
-        await mock_session.commit()
     finally:
         await mock_session.close()
 
@@ -36,10 +36,10 @@ async def _app():
     app = create_app(config)
 
     # Переопределяем Depends[SessionDep]
-    app.dependency_overrides[get_session_with_commit] = mock_get_session
+    app.dependency_overrides[get_session_with_commit] = mock_get_session_with_commit
 
     # Переопределяем Depends[TransactionSessionDep]
-    app.dependency_overrides[get_session_without_commit] = mock_get_transaction_session
+    app.dependency_overrides[get_session_without_commit] = mock_get_session_without_commit
 
     return app
 
@@ -51,3 +51,8 @@ async def client(_app):
     httpx_client = AsyncClient(transport=ASGITransport(app=_app), base_url="http://testserver")
     async with httpx_client as client, lifespan:
         yield client
+
+
+@pytest.fixture
+def mock_db_session():
+    return mock_session

@@ -10,9 +10,10 @@ from fastapi.templating import Jinja2Templates
 
 from app.core.logger_config import configure_logging
 from app.core.settings import AppConfig
-from app.routes import router
+from app.routes import router as routers_v1
 from app.api.default.router import router as default_router
-from app.api.auth.router import router as auth_router
+from app.api.auth.router import cookie_auth_router
+from app.api.auth.router import bearer_auth_router
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -52,8 +53,9 @@ def create_app(config: AppConfig) -> FastAPI:
     )
 
     app.include_router(default_router)
-    app.include_router(auth_router)
-    app.include_router(router)
+    app.include_router(cookie_auth_router)
+    app.include_router(bearer_auth_router)
+    app.include_router(routers_v1)
 
     @app.exception_handler(Exception)
     async def http_exception_handler(request: Request, exc: Exception) -> JSONResponse:
