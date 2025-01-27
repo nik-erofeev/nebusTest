@@ -6,8 +6,6 @@ from app.api.organization.router import router as organization_router
 from app.api.activity.router import router as activity_router
 from app.api.building.router import router as building_router
 from app.api.init_data_router import router as init_data_router
-from app.api.default.router import router as default_router
-from app.api.auth.router import router as auth_router
 from app.core.settings import APP_CONFIG
 
 router = APIRouter(
@@ -16,8 +14,6 @@ router = APIRouter(
 
 
 routers = (
-    default_router,
-    auth_router,
     init_data_router,
     organization_router,
     activity_router,

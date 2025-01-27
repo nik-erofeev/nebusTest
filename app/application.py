@@ -11,6 +11,8 @@ from fastapi.templating import Jinja2Templates
 from app.core.logger_config import configure_logging
 from app.core.settings import AppConfig
 from app.routes import router
+from app.api.default.router import router as default_router
+from app.api.auth.router import router as auth_router
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -49,6 +51,8 @@ def create_app(config: AppConfig) -> FastAPI:
         allow_headers=["*"],
     )
 
+    app.include_router(default_router)
+    app.include_router(auth_router)
     app.include_router(router)
 
     @app.exception_handler(Exception)

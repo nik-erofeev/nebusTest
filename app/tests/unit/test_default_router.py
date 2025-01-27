@@ -3,7 +3,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_ready(client):
-    response = await client.get("/v1/check_database")
+    response = await client.get("/check_database")
 
     assert response.status_code == 200
     data = response.json()
@@ -14,8 +14,8 @@ async def test_ready(client):
 @pytest.mark.parametrize(
     "url, expected_status, expected_data",
     [
-        ("/v1/ping", 200, {"message": "pong"}),
-        ("/v1/pin1", 404, {"detail": "Not Found"}),
+        ("/ping", 200, {"message": "pong"}),
+        ("/pin1", 404, {"detail": "Not Found"}),
     ],
     ids=["success", "url not_found"],
 )
